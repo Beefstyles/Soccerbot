@@ -66,7 +66,7 @@ Vmax = 235
 #Vmin = 126
 #Vmax = 255
 
-width = 160
+width = 160 * 2
 centrePoint = width / 2
 height = 120
 #delay = (0.0001 / 1000.0)
@@ -197,11 +197,11 @@ try:
                 y = moments['m01'] / moments['m00']
                 #cv2.circle(unfilteredImage, (int(x), int(y)), 5, (0, 0, 255), -1)
                 if(int(x) < (centrePoint - 50)): #Default is 50
-                    print("To the left")
-                    RotateAntiClockwise()
-                elif(int(x) > (centrePoint + 50)): #Default is 50
-                    print("To the Right")
+                    print("To the right")
                     RotateClockwise()
+                elif(int(x) > (centrePoint + 50)): #Default is 50
+                    print("To the Left")
+                    RotateAntiClockwise()                 
                 else:
                     print("Centered")
                     ForwardFull()
