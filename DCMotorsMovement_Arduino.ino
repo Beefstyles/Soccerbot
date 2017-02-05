@@ -80,37 +80,48 @@ void loop()
   {
     ForwardMotorLeftMethod();
     ForwardMotorRightMethod();
+    goto bailFromUpdate;
   }
 
    if(forwardLeftActionPinVal >= servoValue)
   {
     ForwardMotorLeftMethod();
-    //ReverseMotorRightMethod();
+    ReverseMotorRightMethod();
   }
 
    if(forwardRightActionPinVal >= servoValue)
   {
     ForwardMotorRightMethod();
-    //ReverseMotorLeftMethod();
+    ReverseMotorLeftMethod();
   }
 
   if(reverseLeftActionPinVal >= servoValue && reverseRightActionPinVal >= servoValue)
   {
     ReverseMotorLeftMethod();
     ReverseMotorRightMethod();
+    goto bailFromUpdate;
   }
 
   if(reverseLeftActionPinVal >= servoValue)
   {
-    StopRightMotor();
+    //StopRightMotor();
     ReverseMotorLeftMethod();
   }
   
    if(reverseRightActionPinVal >= servoValue)
   {
-    StopLeftMotor();
+    //StopLeftMotor();
     ReverseMotorRightMethod();
   }
+  if(forwardLeftActionPinVal <= servoValue && forwardRightActionPinVal <= servoValue && reverseLeftActionPinVal <= servoValue && reverseRightActionPinVal <= servoValue)
+  {
+    StopLeftMotor();
+    StopRightMotor();
+  }
+  
+  bailFromUpdate:
+
+
 
 delay(1);
 }
@@ -126,7 +137,9 @@ void ForwardMotorRightMethod()
     delay(50);
     digitalWrite(MotorOnPinRight, HIGH);
     //SetMotorBools(bool forwardMotorRightOnSet, bool reverseMotorRightOnSet, bool forwardMotorLeftOnSet, bool reverseMotorLeftOnSet)
-    SetMotorBools(true,false,false,false);
+    forwardMotorRightOn = true;
+    //bool forwardMotorRightOn, reverseMotorRightOn, forwardMotorLeftOn, reverseMotorLeftOn;
+    SetMotorBools(forwardMotorRightOn,false,false,false);
   }
 }
 
@@ -141,7 +154,8 @@ void ReverseMotorRightMethod()
     delay(50);
     digitalWrite(MotorOnPinRight, HIGH);
     //SetMotorBools(bool forwardMotorRightOnSet, bool reverseMotorRightOnSet, bool forwardMotorLeftOnSet, bool reverseMotorLeftOnSet)
-    SetMotorBools(false,true,false,false);
+    reverseMotorRightOn = true;
+    SetMotorBools(false,reverseMotorRightOn,false,false);
   }
 }
 
@@ -156,7 +170,8 @@ void ForwardMotorLeftMethod()
   delay(50);
   digitalWrite(MotorOnPinLeft, HIGH);
   //SetMotorBools(bool forwardMotorRightOnSet, bool reverseMotorRightOnSet, bool forwardMotorLeftOnSet, bool reverseMotorLeftOnSet)
-  SetMotorBools(false,false,true,false);
+  forwardMotorLeftOn = true;
+  SetMotorBools(false,false,forwardMotorLeftOn,false);
   }  
 }
 
@@ -171,7 +186,8 @@ void ReverseMotorLeftMethod()
     delay(50);
     digitalWrite(MotorOnPinLeft, HIGH);
     //SetMotorBools(bool forwardMotorRightOnSet, bool reverseMotorRightOnSet, bool forwardMotorLeftOnSet, bool reverseMotorLeftOnSet)
-    SetMotorBools(false,false,false,true);
+    reverseMotorLeftOn = true;
+    SetMotorBools(false,false,false,reverseMotorLeftOn);
   }
 }
 

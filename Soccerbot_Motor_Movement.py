@@ -166,6 +166,7 @@ def kickBall():
 
 print("Soccerbot initialised. Starting ball search now")
 
+StopMotors()
 GPIO.output(startScanPin,0)
 startScan = False
 try:
