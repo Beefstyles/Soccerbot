@@ -13,6 +13,34 @@
 #---------------------------------------------------------------
 # Glen Willis
 
+class CameraStream:
+
+    def __init__(self):
+        print("Initialising Camera")
+        ret, unfilteredImage = capture.read()
+        imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
+        imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
+        imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
+        self.moments = cv2.moments(imgErosion, True)
+        
+    def start(self):
+        print("Starting Camera Thread")
+        t = Thread(target=self.update,args=())
+        #t.daemon = True
+        t.start()
+        return self
+    
+    def update(self):
+        print("Updating camera")
+        ret, unfilteredImage = capture.read()
+        imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
+        imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
+        imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
+        moments = cv2.moments(imgErosion, True)
+
+    def returnMonments(self):
+        return self.moments
+
 import cv2.cv as cv
 import cv2 as cv2
 import time
@@ -20,6 +48,7 @@ import numpy as np
 import os
 from time import sleep
 import RPi.GPIO as GPIO
+from threading import Thread
 
 from random import randint
 
@@ -97,7 +126,7 @@ maxArea = 65000
 #cv.NamedWindow("Filtered Image")
 
 
-capture = cv2.VideoCapture(0)
+#capture = cv2.VideoCapture(0)
 #capture.set(cv2.CV_CAP_PROP_FRAME_COUNT, 30)
 
 # Image capture window parameters
@@ -163,59 +192,60 @@ print("Soccerbot initialised. Starting ball search now")
 StopMotors()
 GPIO.output(startScanPin,0)
 startScan = False
-try:
-    while True:
-        ret, unfilteredImage = capture.read()
-        imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
-        imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
-        imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
-        moments = cv2.moments(imgErosion, True)
-        #print(moments['m00'])
-        if startScan == True and directionSet == False:
-        #print(GPIO.input(scanDonePin))
-            if GPIO.input(scanDonePin):
-                directionSet = True
-                directionChoice = 0
-                print("To the right")        
-        if bufferCt <= bufferMax:
-            bufferCt += 1 
-        xCalc = moments['m10']
-        yCalc = moments['m01']
-        if moments['m00'] >= minArea:
-            if moments['m00'] <= maxArea:
-                if startScan == True:
-                    print("Found to the left")
-                    directionChoice = 1
-                    startScan = False
+capture = cv2.VideoCapture(0)
+cam = CameraStream().start()
+time.sleep(2.0)
+if __name__== '__main__':
+    try:
+        while True:
+            #print(moments['m00'])
+            moments = cam.returnMonments()
+            if startScan == True and directionSet == False:
+            #print(GPIO.input(scanDonePin))
+                if GPIO.input(scanDonePin):
                     directionSet = True
-                x = moments['m10'] / moments['m00']
-                y = moments['m01'] / moments['m00']
-                #cv2.circle(unfilteredImage, (int(x), int(y)), 5, (0, 0, 255), -1)
-                if(int(x) < (centrePoint - 50)): #Default is 50
-                    print("To the right")
-                    RotateClockwise()
-                elif(int(x) > (centrePoint + 50)): #Default is 50
-                    print("To the Left")
-                    RotateAntiClockwise()                 
+                    directionChoice = 0
+                    print("To the right")        
+            if bufferCt <= bufferMax:
+                bufferCt += 1 
+            xCalc = moments['m10']
+            yCalc = moments['m01']
+            if moments['m00'] >= minArea:
+                if moments['m00'] <= maxArea:
+                    if startScan == True:
+                        print("Found to the left")
+                        directionChoice = 1
+                        startScan = False
+                        directionSet = True
+                        moments = cam.retrurnMoments
+                    x = moments['m10'] / moments['m00']
+                    y = moments()['m01'] / moments['m00']
+                    #cv2.circle(unfilteredImage, (int(x), int(y)), 5, (0, 0, 255), -1)
+                    if(int(x) < (centrePoint - 50)): #Default is 50
+                        print("To the right")
+                        RotateClockwise()
+                    elif(int(x) > (centrePoint + 50)): #Default is 50
+                        print("To the Left")
+                        RotateAntiClockwise()                 
+                    else:
+                        print("Centered")
+                        ForwardFull()
                 else:
-                    print("Centered")
-                    ForwardFull()
+                    if bufferCt >= bufferMax:
+                        kickBall()
+                        bufferCt = 0
+                        #sleep(1)
             else:
-                if bufferCt >= bufferMax:
-                    kickBall()
-                    bufferCt = 0
-                    #sleep(1)
-        else:
-            #findBall(directionChoice)
-            if startScan == False and directionSet == False:
-                startScan = True
-                scanFindBall()
-            else:
-                if directionSet == True:
-                    findBall(directionChoice)            
-except KeyboardInterrupt:
-    StopMotors()
-    pass
+                #findBall(directionChoice)
+                if startScan == False and directionSet == False:
+                    startScan = True
+                    scanFindBall()
+                else:
+                    if directionSet == True:
+                        findBall(directionChoice)            
+    except KeyboardInterrupt:
+        StopMotors()
+        pass
     # cv2.imshow("Unfiltered Image",unfilteredImage)
     # cv2.imshow("HSV", imgHSV)
     # cv2.imshow("Threshold", imgThreshold)

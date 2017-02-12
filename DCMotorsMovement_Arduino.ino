@@ -119,6 +119,7 @@ void loop()
     StopRightMotor();
   }
   
+  
   bailFromUpdate:
 
 
@@ -136,10 +137,9 @@ void ForwardMotorRightMethod()
     digitalWrite(ForwardMotorRight, HIGH);
     delay(50);
     digitalWrite(MotorOnPinRight, HIGH);
-    //SetMotorBools(bool forwardMotorRightOnSet, bool reverseMotorRightOnSet, bool forwardMotorLeftOnSet, bool reverseMotorLeftOnSet)
+
     forwardMotorRightOn = true;
-    //bool forwardMotorRightOn, reverseMotorRightOn, forwardMotorLeftOn, reverseMotorLeftOn;
-    SetMotorBools(forwardMotorRightOn,false,false,false);
+    reverseMotorRightOn = false;
   }
 }
 
@@ -153,9 +153,8 @@ void ReverseMotorRightMethod()
     digitalWrite(ReverseMotorRight, HIGH);
     delay(50);
     digitalWrite(MotorOnPinRight, HIGH);
-    //SetMotorBools(bool forwardMotorRightOnSet, bool reverseMotorRightOnSet, bool forwardMotorLeftOnSet, bool reverseMotorLeftOnSet)
-    reverseMotorRightOn = true;
-    SetMotorBools(false,reverseMotorRightOn,false,false);
+     reverseMotorRightOn = true;
+     forwardMotorRightOn = false;
   }
 }
 
@@ -169,9 +168,10 @@ void ForwardMotorLeftMethod()
   digitalWrite(ForwardMotorLeft, HIGH);
   delay(50);
   digitalWrite(MotorOnPinLeft, HIGH);
-  //SetMotorBools(bool forwardMotorRightOnSet, bool reverseMotorRightOnSet, bool forwardMotorLeftOnSet, bool reverseMotorLeftOnSet)
+
   forwardMotorLeftOn = true;
-  SetMotorBools(false,false,forwardMotorLeftOn,false);
+  reverseMotorLeftOn = false;
+
   }  
 }
 
@@ -185,9 +185,9 @@ void ReverseMotorLeftMethod()
     digitalWrite(ReverseMotorLeft, HIGH);
     delay(50);
     digitalWrite(MotorOnPinLeft, HIGH);
-    //SetMotorBools(bool forwardMotorRightOnSet, bool reverseMotorRightOnSet, bool forwardMotorLeftOnSet, bool reverseMotorLeftOnSet)
+
     reverseMotorLeftOn = true;
-    SetMotorBools(false,false,false,reverseMotorLeftOn);
+    forwardMotorLeftOn = false;
   }
 }
 
