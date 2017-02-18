@@ -21,25 +21,32 @@ class CameraStream:
         imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
         imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
         imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
-        self.moments = cv2.moments(imgErosion, True)
+        self._moments = cv2.moments(imgErosion, True)
+        self._xPos = self.moments['m10'] / self.moments['m00']
         
     def start(self):
         print("Starting Camera Thread")
         t = Thread(target=self.update,args=())
-        #t.daemon = True
+        t.daemon = True
         t.start()
         return self
     
     def update(self):
-        print("Updating camera")
-        ret, unfilteredImage = capture.read()
-        imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
-        imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
-        imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
-        moments = cv2.moments(imgErosion, True)
+        while True:    
+            #print("Updating camera")
+            ret, unfilteredImage = capture.read()
+            imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
+            imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
+            imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
+            self._moments = cv2.moments(imgErosion, True)
+            #sleep(1)
 
     def returnMonments(self):
-        return self.moments
+        return self._moments
+
+    def returnXPos(self):
+        self._xPos = self.moments['m10'] / self.moments['m00']
+        return self._xPos
 
 import cv2.cv as cv
 import cv2 as cv2
@@ -208,8 +215,8 @@ if __name__== '__main__':
                     print("To the right")        
             if bufferCt <= bufferMax:
                 bufferCt += 1 
-            xCalc = moments['m10']
-            yCalc = moments['m01']
+            #xCalc = moments['m10']
+            #yCalc = moments['m01']
             if moments['m00'] >= minArea:
                 if moments['m00'] <= maxArea:
                     if startScan == True:
@@ -217,9 +224,9 @@ if __name__== '__main__':
                         directionChoice = 1
                         startScan = False
                         directionSet = True
-                        moments = cam.retrurnMoments
-                    x = moments['m10'] / moments['m00']
-                    y = moments()['m01'] / moments['m00']
+                    #x = moments['m10'] / moments['m00']
+                    x = cam.returnXPos()
+                    #y = moments['m01'] / moments['m00']
                     #cv2.circle(unfilteredImage, (int(x), int(y)), 5, (0, 0, 255), -1)
                     if(int(x) < (centrePoint - 50)): #Default is 50
                         print("To the right")

@@ -192,13 +192,13 @@ try:
                 y = moments['m01'] / moments['m00']
                 #cv2.circle(unfilteredImage, (int(x), int(y)), 5, (0, 0, 255), -1)
                 if(int(x) < (centrePoint - 50)): #Default is 50
-                    print("To the right")
+                    #print("To the right")
                     RotateClockwise()
                 elif(int(x) > (centrePoint + 50)): #Default is 50
-                    print("To the Left")
+                    #print("To the Left")
                     RotateAntiClockwise()                 
                 else:
-                    print("Centered")
+                    #print("Centered")
                     ForwardFull()
             else:
                 if bufferCt >= bufferMax:
