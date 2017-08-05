@@ -8,6 +8,7 @@
 # Email: saymowan@gmail.com
 # Descrição: este algoritmo descreve a sexta implementação de OpenCV
 # Funções: Imagem digital -> Transformação HSV -> Imagem binária -> Erosão binária -> Encontrar área -> Encontrar coordenadas
+
 # Tecnologias: OpenCV, Python e NumPy
 # Url: http://www.instructables.com/id/The-RROP-RaspRobot-OpenCV-Project/
 #---------------------------------------------------------------
@@ -21,8 +22,9 @@ class CameraStream:
         imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
         imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
         imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
+
         self._moments = cv2.moments(imgErosion, True)
-        self._xPos = self.moments['m10'] / self.moments['m00']
+        self._xPos = 0
         
     def start(self):
         print("Starting Camera Thread")
@@ -33,20 +35,26 @@ class CameraStream:
     
     def update(self):
         while True:    
-            #print("Updating camera")
             ret, unfilteredImage = capture.read()
             imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
             imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
             imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
+            
             self._moments = cv2.moments(imgErosion, True)
-            #sleep(1)
+            if self._moments['m00'] > 0:
+                self._xPos = self._moments['m10'] / self._moments['m00']               
+                
+        #sleep(1)
 
     def returnMonments(self):
         return self._moments
 
     def returnXPos(self):
-        self._xPos = self.moments['m10'] / self.moments['m00']
         return self._xPos
+
+    def stopSteam(self):
+        capture.release()
+        t.stop()
 
 import cv2.cv as cv
 import cv2 as cv2
@@ -71,6 +79,7 @@ servoKick = 18
 scanDonePin = 11
 scanDonePinVal = 0
 
+lookingForBall = False
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(forwardMotorLeftActionPin,GPIO.OUT)
 GPIO.setup(forwardMotorRightActionPin,GPIO.OUT)
@@ -85,7 +94,7 @@ servoKickPwm.start(0)
 #servoKickPwm.ChangeDutyCycle(0)
 
 # The HSV range used to detect the coloured object
-# This example is for a green ball
+# Green ball
 Hmin = 42
 Hmax = 92
 Smin = 62
@@ -94,17 +103,9 @@ Vmin = 63
 Vmax = 235
 
 
-#Standard Red example
-#Hmin = 0
-#Hmax = 179 
-#Smin = 131
-#Smax = 255
-#Vmin = 126
-#Vmax = 255
-
-width = 160 * 2
+width = 500 #160 * 2
 centrePoint = width / 2
-height = 120
+height = 500 # Default 120
 #delay = (0.0001 / 1000.0)
 delay = (1/1000.0)
 ballKicked = False
@@ -122,7 +123,8 @@ rangeMax = np.array([Hmax, Smax, Vmax], np.uint8)
 
 # Minimum area to be detected
 #minArea = 50 Default area
-minArea = 50
+minArea = 25
+
 # Max area to be detected to activate kick
 #maxArea = 70000 # Workable value
 maxArea = 65000
@@ -133,12 +135,15 @@ maxArea = 65000
 #cv.NamedWindow("Filtered Image")
 
 
-#capture = cv2.VideoCapture(0)
-#capture.set(cv2.CV_CAP_PROP_FRAME_COUNT, 30)
+cv.NamedWindow("Unfiltered Image")
+
+capture = cv2.VideoCapture(0)
+
+
 
 # Image capture window parameters
-#width = 160 #Default value
-#height = 120 #Default value
+width = 500 #Default value
+height = 500 #Default value
 
 def RotateClockwise():
     GPIO.output(forwardMotorLeftActionPin, 1)
@@ -161,8 +166,10 @@ def StopMotors():
 def findBall(directionChoice):
     if(directionChoice == 0): #Turn Left
         RotateClockwise()
+        print "Looking to the Left"
     else:
         RotateAntiClockwise() #Turn Right
+    print "Looking to the Right"
         
 def scanFindBall():
     startScan = True
@@ -171,7 +178,7 @@ def scanFindBall():
     GPIO.output(startScanPin,0)
     
 def kickBall():
-    #print("Trying to kick the ball")
+    print("Trying to kick the ball")
     for dcUp in range(0, 10, 1):
         servoKickPwm.ChangeDutyCycle(dcUp)
         time.sleep(0.1)
@@ -182,7 +189,7 @@ def kickBall():
     sleep(0.01)
     servoKickPwm.start(0)
     sleep(0.1)
-    #print("Ball kicked")
+    print("Ball kicked")
     
     
     # 12.5 is 180
@@ -190,72 +197,55 @@ def kickBall():
     # 2.5 is 0
 
 # Set a size the for the frames
-#if capture.isOpened():
- #   capture.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, width)
-  #  capture.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, height)
+if capture.isOpened():
+    capture.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, width)
+    capture.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, height)
 
 print("Soccerbot initialised. Starting ball search now")
 
 StopMotors()
 GPIO.output(startScanPin,0)
 startScan = False
-capture = cv2.VideoCapture(0)
 cam = CameraStream().start()
-time.sleep(2.0)
-if __name__== '__main__':
-    try:
-        while True:
-            #print(moments['m00'])
-            moments = cam.returnMonments()
-            if startScan == True and directionSet == False:
-            #print(GPIO.input(scanDonePin))
-                if GPIO.input(scanDonePin):
-                    directionSet = True
-                    directionChoice = 0
-                    print("To the right")        
-            if bufferCt <= bufferMax:
-                bufferCt += 1 
-            #xCalc = moments['m10']
-            #yCalc = moments['m01']
-            if moments['m00'] >= minArea:
-                if moments['m00'] <= maxArea:
-                    if startScan == True:
-                        print("Found to the left")
-                        directionChoice = 1
-                        startScan = False
-                        directionSet = True
-                    #x = moments['m10'] / moments['m00']
-                    x = cam.returnXPos()
-                    #y = moments['m01'] / moments['m00']
-                    #cv2.circle(unfilteredImage, (int(x), int(y)), 5, (0, 0, 255), -1)
-                    if(int(x) < (centrePoint - 50)): #Default is 50
-                        print("To the right")
-                        RotateClockwise()
-                    elif(int(x) > (centrePoint + 50)): #Default is 50
-                        print("To the Left")
-                        RotateAntiClockwise()                 
-                    else:
-                        print("Centered")
-                        ForwardFull()
-                else:
-                    if bufferCt >= bufferMax:
-                        kickBall()
-                        bufferCt = 0
-                        #sleep(1)
-            else:
-                #findBall(directionChoice)
-                if startScan == False and directionSet == False:
-                    startScan = True
-                    scanFindBall()
-                else:
-                    if directionSet == True:
-                        findBall(directionChoice)            
-    except KeyboardInterrupt:
-        StopMotors()
-        pass
-    # cv2.imshow("Unfiltered Image",unfilteredImage)
-    # cv2.imshow("HSV", imgHSV)
-    # cv2.imshow("Threshold", imgThreshold)
-    # cv2.imshow("Filtered Image", imgErosion)
+time.sleep(1.0)
 
-cv.DestroyAllWindows()
+if __name__== '__main__':
+    while True:
+        ret, unfilteredImage = capture.read()
+        cv2.imshow("Unfiltered Image",unfilteredImage)
+        moments = cam.returnMonments()
+        print(moments['m00'])
+        if bufferCt <= bufferMax:
+            bufferCt += 1 
+        if moments['m00'] >= minArea:
+            if moments['m00'] <= maxArea:
+                x = moments['m10'] / moments['m00']
+                lookingForBall = False
+                if(int(x) < (centrePoint - 50)): #Default is 50
+                    print("To the right")
+                    RotateClockwise()
+                    directionChoice = 1
+                elif(int(x) > (centrePoint + 50)): #Default is 50
+                    print("To the Left")
+                    directionChoice = 0
+                    RotateAntiClockwise()                 
+                else:
+                    print("Centered")
+                    ForwardFull()
+            else:
+                if bufferCt >= bufferMax:
+                    print("Looking to kick the ball")
+                    kickBall()
+                    bufferCt = 0
+        else:
+            if lookingForBall == False:
+                findBall(directionChoice)
+                lookingForBall = True           
+        if cv.WaitKey(10) == 27:
+            print("Exiting Soccerbot")
+            break      
+    print("Cleaning up Soccerbot")
+    StopMotors()
+    GPIO.cleanup()
+    cv.DestroyAllWindows()
+    cam = CameraStream().stop()
