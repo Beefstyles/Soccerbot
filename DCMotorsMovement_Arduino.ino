@@ -1,37 +1,41 @@
 #include <Servo.h>
-Servo mainServo;
+int lightResSensitivity = 450; //LDR cut off value
+Servo kickServo;
+int lightResValue; //Value for light sensor
+int maxServoPos = 65;
+int kickServoPos = 0;
 
-int pos = 0;
-int startSweepPin = A4;
-int startSweepPinVal;
-int SweepDoneRelayPin = 8;
-int forwardLeftActionPin = A0;
-int forwardRightActionPin = A1;
-int reverseLeftActionPin = A2;
-int reverseRightActionPin = A3;
+const int ldrPin = A4; //LDR analog connection
+const int kickServoPin = 5;
+const int forwardLeftActionPin = A0;
+const int forwardRightActionPin = A1;
+const int reverseLeftActionPin = A2;
+const int reverseRightActionPin = A3;
+
 int forwardLeftActionPinVal, reverseLeftActionPinVal, forwardRightActionPinVal, reverseRightActionPinVal;
-bool searchStarted;
-int zeroPos = 0;
-int maxPos = 160;
 
-int MotorOnPinRight = 13;
-int ForwardMotorRight = 6;
-int ReverseMotorRight = 7;
-int MotorOnPinLeft = 11;
-int ForwardMotorLeft = 3;
-int ReverseMotorLeft = 2;
+const int MotorOnPinRight = 13;
+const int ForwardMotorRight = 6;
+const int ReverseMotorRight = 7;
+const int MotorOnPinLeft = 11;
+const int ForwardMotorLeft = 3;
+const int ReverseMotorLeft = 2;
 int servoValue;
 bool forwardMotorRightOn, reverseMotorRightOn, forwardMotorLeftOn, reverseMotorLeftOn;
 
+
+
 void setup() {
-  //Setup for the servo sweep functionality
-  searchStarted = false;
+
+  Serial.begin(9600);
+  lightResValue = analogRead(ldrPin); //Read ldr and output a value
+  SetLightResSens();
+  kickServo.attach(kickServoPin);
+  kickServo.write(kickServoPos); // Zero out
+
   SetMotorBools(false,false,false,false);
 
   servoValue = 400;
-  pinMode(startSweepPin, INPUT);
-  pinMode(SweepDoneRelayPin, OUTPUT);
-  digitalWrite(SweepDoneRelayPin, LOW);
 
   //Setup for the DC motor movement functionality
   pinMode(MotorOnPinRight, OUTPUT);
@@ -52,30 +56,31 @@ void setup() {
   digitalWrite(MotorOnPinLeft, LOW);
   digitalWrite(ForwardMotorLeft, LOW);
   digitalWrite(ReverseMotorLeft, LOW);
+}
 
-  Serial.begin(9600);
-  mainServo.attach(9);
-  mainServo.write(90);
-  mainServo.detach();
+void SetLightResSens()
+{
+  lightResSensitivity = lightResValue + 350; //Sets LDR cut off value - Min 730
+  Serial.print("Sensitivity limit is: ");
+  Serial.print(lightResSensitivity);
 }
 
 void loop() 
 {
-  startSweepPinVal = analogRead(startSweepPin);
+  lightResValue = analogRead(ldrPin); //Read ldr and output a value
+  Serial.print("Analog read: ");
+  Serial.println(lightResValue);
   forwardLeftActionPinVal = analogRead(forwardLeftActionPin);
   reverseLeftActionPinVal = analogRead(reverseLeftActionPin);
   forwardRightActionPinVal = analogRead(forwardRightActionPin);
   reverseRightActionPinVal = analogRead(reverseRightActionPin);
-  
-  if(startSweepPinVal >= servoValue)
+
+  if (lightResValue >= lightResSensitivity)
   {
-    if(searchStarted == false)
-    {
-      Serial.println("Search started");
-      searchStarted = true;
-      RotateServo();
-    }
+    Serial.println("Would kick with servo now");
+    KickWithServo();
   }
+  
  if(forwardLeftActionPinVal >= servoValue && forwardRightActionPinVal >= servoValue)
   {
     ForwardMotorLeftMethod();
@@ -119,10 +124,7 @@ void loop()
     StopRightMotor();
   }
   
-  
   bailFromUpdate:
-
-
 
 delay(1);
 }
@@ -207,39 +209,27 @@ void StopRightMotor()
   digitalWrite(ReverseMotorRight, LOW);
 }
 
-void RotateServo()
-{
-  mainServo.attach(9);
-  for (pos = zeroPos; pos <= maxPos; pos += 1) { // goes from 0 degrees to 180 degrees
-    // in steps of 1 degree
-    mainServo.write(pos);
-    //Serial.print("Pos is currently: ");
-    //Serial.println(pos);
-    delay(30);                       // waits 30ms for the servo to reach the position
-  }
-  digitalWrite(SweepDoneRelayPin, HIGH);
-  CentreServo(pos);
-}
-
-void CentreServo(int startPos)
-{
-    for (pos = startPos; pos >= zeroPos; pos -= 1) { // goes from 180 degrees to 0 degrees
-    mainServo.write(pos);              // tell servo to go to position in variable 'pos'
-    //Serial.print("Pos is currently: ");
-    //Serial.println(pos);
-    delay(15);                       // waits 30ms for the servo to reach the position
-  }
-  searchStarted = false;
-  mainServo.detach();
-  digitalWrite(SweepDoneRelayPin, LOW);
-}
-
 void SetMotorBools(bool forwardMotorRightOnSet, bool reverseMotorRightOnSet, bool forwardMotorLeftOnSet, bool reverseMotorLeftOnSet)
 {
   forwardMotorRightOn = forwardMotorRightOnSet;
   reverseMotorRightOn = reverseMotorRightOnSet;
   forwardMotorLeftOn = forwardMotorLeftOnSet;
   reverseMotorLeftOn = reverseMotorLeftOnSet;
+}
+
+void KickWithServo()
+{
+  for (kickServoPos = 0; kickServoPos <= maxServoPos; kickServoPos++)
+  {
+    kickServo.write(kickServoPos);  
+    delay(3);                       // waits for the servo to reach the position
+  }
+  for (kickServoPos = maxServoPos; kickServoPos >= 0; kickServoPos--)
+  {
+    kickServo.write(kickServoPos);              
+    delay(3);                       // waits for the servo to reach the position
+  }
+  delay(15);
 }
 
 

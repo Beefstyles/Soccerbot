@@ -22,7 +22,6 @@ class CameraStream:
         imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
         imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
         imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
-
         self._moments = cv2.moments(imgErosion, True)
         self._xPos = 0
         
@@ -39,7 +38,6 @@ class CameraStream:
             imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
             imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
             imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
-            
             self._moments = cv2.moments(imgErosion, True)
             if self._moments['m00'] > 0:
                 self._xPos = self._moments['m10'] / self._moments['m00']               
@@ -129,13 +127,13 @@ minArea = 25
 #maxArea = 70000 # Workable value
 maxArea = 65000
 
+#Uncomment below to display unfiltered image in window
 #cv.NamedWindow("Unfiltered Image")
+
 #cv.NamedWindow("HSV")
 #cv.NamedWindow("Threshold")
 #cv.NamedWindow("Filtered Image")
 
-
-cv.NamedWindow("Unfiltered Image")
 
 capture = cv2.VideoCapture(0)
 
@@ -212,9 +210,9 @@ time.sleep(1.0)
 if __name__== '__main__':
     while True:
         ret, unfilteredImage = capture.read()
-        cv2.imshow("Unfiltered Image",unfilteredImage)
+        # Uncomment below to display unfiltered image as window
+        #cv2.imshow("Unfiltered Image",unfilteredImage)
         moments = cam.returnMonments()
-        print(moments['m00'])
         if bufferCt <= bufferMax:
             bufferCt += 1 
         if moments['m00'] >= minArea:
@@ -235,7 +233,7 @@ if __name__== '__main__':
             else:
                 if bufferCt >= bufferMax:
                     print("Looking to kick the ball")
-                    kickBall()
+                    #kickBall()
                     bufferCt = 0
         else:
             if lookingForBall == False:
