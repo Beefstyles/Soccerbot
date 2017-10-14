@@ -91,13 +91,15 @@ void loop()
    if(forwardLeftActionPinVal >= servoValue)
   {
     ForwardMotorLeftMethod();
-    ReverseMotorRightMethod();
+    StopRightMotor();
+    //ReverseMotorRightMethod();
   }
 
    if(forwardRightActionPinVal >= servoValue)
   {
     ForwardMotorRightMethod();
-    ReverseMotorLeftMethod();
+    StopLeftMotor();
+    //ReverseMotorLeftMethod();
   }
 
   if(reverseLeftActionPinVal >= servoValue && reverseRightActionPinVal >= servoValue)
@@ -199,6 +201,8 @@ void StopLeftMotor()
   delay(50);
   digitalWrite(ForwardMotorLeft, LOW);
   digitalWrite(ReverseMotorLeft, LOW);
+  reverseMotorLeftOn = false;
+  forwardMotorLeftOn = false;
 }
 
 void StopRightMotor()
@@ -207,6 +211,8 @@ void StopRightMotor()
   delay(50);
   digitalWrite(ForwardMotorRight, LOW);
   digitalWrite(ReverseMotorRight, LOW);
+  reverseMotorRightOn = false;
+  forwardMotorRightOn = false;
 }
 
 void SetMotorBools(bool forwardMotorRightOnSet, bool reverseMotorRightOnSet, bool forwardMotorLeftOnSet, bool reverseMotorLeftOnSet)
