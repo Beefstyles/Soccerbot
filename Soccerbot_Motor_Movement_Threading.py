@@ -35,8 +35,13 @@ class CameraStream:
     def update(self):
         while True:    
             ret, unfilteredImage = capture.read()
-            imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
-            imgThreshold = cv2.inRange(imgHSV, rangeMin, rangeMax)
+            imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)
+            # Looking for the green ball
+            if lookingForGoal == False:
+                imgThreshold = cv2.inRange(imgHSV, rangeMinGreen, rangeMaxGreen)
+            # Looking for the blue goal
+            else:
+                imgThreshold = cv2.inRange(imgHSV, rangeMinBlue, rangeMaxBlue)
             imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
             self._moments = cv2.moments(imgErosion, True)
             if self._moments['m00'] > 0:
@@ -70,13 +75,9 @@ forwardMotorLeftActionPin = 9
 forwardMotorRightActionPin = 10
 reverseMotorLeftActionPin = 22
 reverseMotorRightActionPin = 27
+kickBallPin = 17
 
-startScanPin = 17
-
-servoKick = 18
-
-scanDonePin = 11
-scanDonePinVal = 0
+ballIsTrappedPin = 11
 
 lookingForBall = False
 GPIO.setmode(GPIO.BCM)
@@ -84,18 +85,26 @@ GPIO.setup(forwardMotorLeftActionPin,GPIO.OUT)
 GPIO.setup(forwardMotorRightActionPin,GPIO.OUT)
 GPIO.setup(reverseMotorLeftActionPin,GPIO.OUT)
 GPIO.setup(reverseMotorRightActionPin,GPIO.OUT)
-GPIO.setup(startScanPin, GPIO.OUT)
-GPIO.setup(scanDonePin, GPIO.IN)
+GPIO.setup(kickBallPin, GPIO.OUT)
+GPIO.setup(ballIsTrappedPin, GPIO.IN)
 
 # The HSV range used to detect the coloured object
 # Green ball
-Hmin = 42
-Hmax = 92
-Smin = 62
-Smax = 255
-Vmin = 63
-Vmax = 235
+HminGreen = 42
+HmaxGreen = 92
+SminGreen = 62
+SmaxGreen = 255
+VminGreen = 63
+VmaxGreen = 235
 
+
+# Blue goal
+HminBlue = 88
+HmaxBlue = 113
+SminBlue = 62
+SmaxBlue = 255
+VminBlue = 63
+VmaxBlue = 235
 
 # Image capture window parameters
 width = 1000 #Default value is 500
@@ -114,13 +123,22 @@ bufferCt = 0
 bufferMax = 10
 ballFoundToRight = False
 
+lookingForGoal = False
 
- # Creates a HSV array based on the min and maxium values (as an unsigned int)
-rangeMin = np.array([Hmin, Smin, Vmin], np.uint8)
-rangeMax = np.array([Hmax, Smax, Vmax], np.uint8)
+
+ # Creates a HSV array based on the min and maxium values (as an unsigned int) - For the Green Ball
+rangeMinGreen = np.array([HminGreen, SminGreen, VminGreen], np.uint8)
+rangeMaxGreen = np.array([HmaxGreen, SmaxGreen, VmaxGreen], np.uint8)
+
+ # Creates a HSV array based on the min and maxium values (as an unsigned int) - For the Blue Goal
+rangeMinBlue = np.array([HminBlue, SminBlue, VminBlue], np.uint8)
+rangeMaxBlue = np.array([HmaxBlue, SmaxBlue, VmaxBlue], np.uint8)
 
 # Minimum area to be detected
 minArea = 25 #Default area = 50
+
+# Maximum area to be detected - Determines distance from goal
+maxArea = 1500 
 
 capture = cv2.VideoCapture(0)
     
@@ -156,6 +174,15 @@ def scanFindBall():
     sleep(0.01)
     GPIO.output(startScanPin,0)
 
+def KickBall():
+    StopMotors()
+    print("Found goal and taking a shot!")
+    GPIO.output(kickBallPin, 1)
+    print("Kicked ball. Did I hit it?")
+    GPIO.output(kickBallPin, 0)
+    lookingForGoal = False
+    sleep(2)
+
 print("Soccerbot initialised. Starting ball search now")
 
 StopMotors()
@@ -168,11 +195,12 @@ try:
     if __name__== '__main__':
         while True:
             moments = cam.returnMonments()
+            if (GPIO.input(ballIsTrappedPin) and lookingForGoal == False):
+                print("Ball is trapped, now looking for the goal")
+                lookingForGoal = True
             if moments['m00'] >= minArea:
                 x = moments['m10'] / moments['m00']
-                #y = moments['m01'] / moments['m00']
                 lookingForBall = False
-                #print(int(x))
                 if(int(x) < (centrePoint - 100)): #Default is 50
                     print("To the right")
                     directionChoice = 1
@@ -184,6 +212,9 @@ try:
                 else:
                     print("Centered")
                     ForwardFull()
+                if (moments['m00'] >= maxArea and lookingForGoal == True):
+                    print("Goal close enough")
+                    KickBall()
             else:
                 if lookingForBall == False:
                     findBall(directionChoice)
