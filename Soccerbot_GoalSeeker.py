@@ -20,7 +20,7 @@
 import cv2.cv as cv
 import cv2 as cv2
 import time
-
+import numpy as np
 import os
 from time import sleep
 import RPi.GPIO as GPIO
@@ -32,7 +32,7 @@ class CameraStream:
         print("Initialising Camera")
         ret, unfilteredImage = capture.read()
         imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)    
-        imgThreshold = cv2.inRange(imgHSV, rangeMinGreen, rangeMaxGreen)
+        imgThreshold = cv2.inRange(imgHSV, rangeMinBall, rangeMaxBall)
         imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
         self._moments = cv2.moments(imgErosion, True)
         self._xPos = 0
@@ -48,12 +48,12 @@ class CameraStream:
         while True:    
             ret, unfilteredImage = capture.read()
             imgHSV = cv2.cvtColor(unfilteredImage,cv2.cv.CV_BGR2HSV)
-            # Looking for the green ball
+            # Looking for the ball - assumed green
             if lookingForGoal == False:
-                imgThreshold = cv2.inRange(imgHSV, rangeMinGreen, rangeMaxGreen)
-            # Looking for the blue goal
+                imgThreshold = cv2.inRange(imgHSV, rangeMinBall, rangeMaxBall)
+            # Looking for the goal - assumed blue
             elif lookingForGoal == True:
-                imgThreshold = cv2.inRange(imgHSV, rangeMinBlue, rangeMaxBlue)
+                imgThreshold = cv2.inRange(imgHSV, rangeMinGoal, rangeMaxGoal)
             imgErosion = cv2.erode(imgThreshold, None, iterations = 3)
             self._moments = cv2.moments(imgErosion, True)
             if self._moments['m00'] > 0:
@@ -94,26 +94,37 @@ GPIO.setup(ballIsTrappedPin, GPIO.IN)
 
 # The HSV range used to detect the coloured object
 # Green ball
-HminGreen = 42
-HmaxGreen = 92
-SminGreen = 62
-SmaxGreen = 255
-VminGreen = 63
-VmaxGreen = 235
+HminBall = 42
+HmaxBall = 92
+SminBall = 62
+SmaxBall = 255
+VminBall = 63
+VmaxBall = 235
+
+"""
+# Light red goal
+HminGoal = 165
+HmaxGoal = 174
+SminGoal = 100
+SmaxGoal = 255
+VminGoal = 205
+VmaxGoal = 255
+"""
 
 # Blue goal
-HminBlue = 95
-HmaxBlue = 113
-SminBlue = 65
-SmaxBlue = 255
-VminBlue = 205
-VmaxBlue = 255
+HminGoal = 95
+HmaxGoal = 113
+SminGoal = 65
+SmaxGoal = 255
+VminGoal = 205
+VmaxGoal = 255
+
 
 # Image capture window parameters
 width = 1000 #Default value is 500
 height = 500 #Default value
 
-centrePoint = 440 #Based on a width of 1000 -> observational value
+centrePoint = 317.5 #Based on a width of 1000 at max x of 635 -> observational value
 height = 500 # Default 120
 delay = (1/1000.0)
 ballKicked = False
@@ -128,12 +139,12 @@ lookingForGoal = False
 
 
  # Creates a HSV array based on the min and maxium values (as an unsigned int) - For the Green Ball
-rangeMinGreen = np.array([HminGreen, SminGreen, VminGreen], np.uint8)
-rangeMaxGreen = np.array([HmaxGreen, SmaxGreen, VmaxGreen], np.uint8)
+rangeMinBall = np.array([HminBall, SminBall, VminBall], np.uint8)
+rangeMaxBall = np.array([HmaxBall, SmaxBall, VmaxBall], np.uint8)
 
  # Creates a HSV array based on the min and maxium values (as an unsigned int) - For the Blue Goal
-rangeMinBlue = np.array([HminBlue, SminBlue, VminBlue], np.uint8)
-rangeMaxBlue = np.array([HmaxBlue, SmaxBlue, VmaxBlue], np.uint8)
+rangeMinGoal = np.array([HminGoal, SminGoal, VminGoal], np.uint8)
+rangeMaxGoal = np.array([HmaxGoal, SmaxGoal, VmaxGoal], np.uint8)
 
 # Minimum area to be detected
 minArea = 25 # Default area = 50
@@ -203,11 +214,13 @@ try:
             if moments['m00'] >= minArea:
                 x = moments['m10'] / moments['m00']
                 lookingForBall = False
-                if(int(x) < (centrePoint - 100)): #Default is 50
+                # Print x to manually calibrate centre point
+                # print(x)
+                if(int(x) < (centrePoint - 135)): #Default is 50
                     print("To the right")
                     directionChoice = 1
                     RotateClockwise()
-                elif(int(x) > (centrePoint + 50)): #Default is 50
+                elif(int(x) > (centrePoint + 100)): #Default is 50
                     print("To the Left")
                     directionChoice = 0
                     RotateAntiClockwise()                 
